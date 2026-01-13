@@ -35,12 +35,14 @@ function renderResumeList() {
     <div class="resume-item ${
       resume.id === selectedResumeId ? "selected" : ""
     }" data-id="${resume.id}">
-      <div class="resume-info">
+      <div class="resume-info" data-id="${resume.id}">
         <svg class="file-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
         <div class="resume-details">
-          <div class="resume-name">${resume.name}</div>
+          <div class="resume-name" data-id="${resume.id}">${escapeHtml(
+        resume.displayName || resume.name
+      )}</div>
           <div class="resume-meta">${formatFileSize(
             resume.size
           )} • ${formatDate(resume.uploadedAt)}</div>
@@ -64,6 +66,13 @@ function renderResumeList() {
           </button>
         `
         }
+        <button class="icon-button edit edit-btn" data-id="${
+          resume.id
+        }" title="Rename">
+          <svg class="edit-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </button>
         <button class="icon-button delete delete-btn" data-id="${
           resume.id
         }" title="Delete">
@@ -77,11 +86,26 @@ function renderResumeList() {
     )
     .join("");
 
-  // Add event listeners to buttons
+  // Add event listeners
+  document.querySelectorAll(".resume-info").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      if (!e.target.closest("input")) {
+        selectResume(el.dataset.id);
+      }
+    });
+  });
+
   document.querySelectorAll(".select-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       selectResume(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".edit-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      startRenaming(btn.dataset.id);
     });
   });
 
@@ -143,9 +167,17 @@ async function handleFileUpload(file) {
     // Read file as base64
     const base64 = await readFileAsBase64(file);
 
+    // Limit filename length for display
+    let displayName = file.name;
+    if (displayName.length > 35) {
+      const ext = displayName.substring(displayName.lastIndexOf("."));
+      displayName = displayName.substring(0, 32 - ext.length) + "..." + ext;
+    }
+
     const newResume = {
       id: generateId(),
       name: file.name,
+      displayName: displayName,
       size: file.size,
       type: file.type,
       data: base64,
@@ -185,6 +217,59 @@ async function selectResume(id) {
   await chrome.storage.local.set({ selectedResumeId });
   renderResumeList();
   showStatus("Resume selected", "success");
+}
+
+function startRenaming(id) {
+  const resume = resumes.find((r) => r.id === id);
+  if (!resume) return;
+
+  const nameElement = document.querySelector(`.resume-name[data-id="${id}"]`);
+  if (!nameElement) return;
+
+  const currentName = resume.displayName || resume.name;
+
+  // Replace text with input
+  nameElement.innerHTML = `<input type="text" value="${escapeHtml(
+    currentName
+  )}" data-id="${id}" maxlength="40" />`;
+
+  const input = nameElement.querySelector("input");
+  input.focus();
+  input.select();
+
+  // Save on blur or Enter
+  const saveRename = async () => {
+    let newName = input.value.trim();
+    if (newName && newName !== currentName) {
+      // Limit to 35 characters for display
+      if (newName.length > 35) {
+        newName = newName.substring(0, 32) + "...";
+      }
+      resume.displayName = newName;
+      await chrome.storage.local.set({ resumes });
+      showStatus("Resume renamed", "success");
+    }
+    renderResumeList();
+  };
+
+  input.addEventListener("blur", saveRename);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === "Escape") {
+      renderResumeList();
+    }
+  });
+
+  // Stop propagation to prevent selection
+  input.addEventListener("click", (e) => e.stopPropagation());
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 async function deleteResume(id) {
