@@ -30,9 +30,9 @@
         --text-primary: #111827;
         --text-secondary: #6b7280;
         --text-tertiary: #9ca3af;
-        --accent-color: #2563eb;
-        --accent-hover: #1d4ed8;
-        --accent-light: #eff6ff;
+        --accent-color: #ff5757;
+        --accent-hover: #e64545;
+        --accent-light: #fff1f1;
         --success-bg: #d1fae5;
         --success-text: #065f46;
         --error-bg: #fee2e2;
@@ -51,9 +51,9 @@
         --text-primary: #f9fafb;
         --text-secondary: #d1d5db;
         --text-tertiary: #9ca3af;
-        --accent-color: #3b82f6;
-        --accent-hover: #2563eb;
-        --accent-light: #1e3a8a;
+        --accent-color: #ff5757;
+        --accent-hover: #ff6b6b;
+        --accent-light: #4a1f1f;
         --success-bg: #065f46;
         --success-text: #d1fae5;
         --error-bg: #991b1b;
@@ -523,12 +523,79 @@
         white-space: nowrap;
       }
 
-      .upload-resume {
-        font-size: 11px;
-        color: var(--text-secondary);
+      .upload-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 8px;
+      }
+
+      .upload-detail-row {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .upload-detail-row svg {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+      }
+
+      .upload-detail-row input,
+      .upload-detail-row select {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        color: var(--text-primary);
+        flex: 1;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+
+      .status-applied {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .status-interview {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .status-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status-accepted {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      body.dark-mode .status-applied {
+        background: #1e3a8a;
+        color: #dbeafe;
+      }
+      body.dark-mode .status-interview {
+        background: #78350f;
+        color: #fef3c7;
+      }
+      body.dark-mode .status-rejected {
+        background: #7f1d1d;
+        color: #fee2e2;
+      }
+      body.dark-mode .status-accepted {
+        background: #064e3b;
+        color: #d1fae5;
       }
 
       /* Settings Styles */
@@ -607,10 +674,11 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.75);
         z-index: 1000;
         align-items: center;
         justify-content: center;
+        padding: 20px;
       }
 
       .modal.active {
@@ -619,40 +687,58 @@
 
       .modal-content {
         background: var(--bg-primary);
-        border-radius: 12px;
-        width: 90%;
-        max-width: 500px;
-        max-height: 80%;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 900px;
+        height: 85vh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       }
 
       .modal-header {
-        padding: 16px 20px;
+        padding: 20px 24px;
         border-bottom: 1px solid var(--border-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: var(--bg-secondary);
       }
 
       .modal-title {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         color: var(--text-primary);
       }
 
       .modal-body {
         flex: 1;
-        overflow: auto;
-        padding: 20px;
+        overflow: hidden;
+        padding: 0;
+        position: relative;
+        background: var(--bg-tertiary);
       }
 
       .preview-iframe {
         width: 100%;
-        height: 400px;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+
+      .modal-resize-handle {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        cursor: nwse-resize;
+        opacity: 0.4;
+      }
+
+      .modal-resize-handle:hover {
+        opacity: 0.8;
       }
     </style>
   </head>
@@ -888,7 +974,7 @@
         <div class="setting-item">
           <div class="setting-info">
             <div class="setting-label">Keyboard shortcut</div>
-            <div class="setting-desc">Ctrl+Shift+U (Cmd+Shift+U on Mac)</div>
+            <div class="setting-desc">Alt+Shift+U to quick upload</div>
           </div>
         </div>
 
@@ -926,6 +1012,147 @@
         </div>
         <div class="modal-body">
           <iframe id="previewFrame" class="preview-iframe"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Details Modal -->
+    <div class="modal" id="uploadDetailsModal">
+      <div class="modal-content" style="max-width: 500px; height: auto">
+        <div class="modal-header">
+          <div class="modal-title">Upload Details</div>
+          <button class="icon-btn" id="closeUploadDetails">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div
+          class="modal-body"
+          style="padding: 20px; overflow-y: auto; max-height: 60vh"
+        >
+          <div style="margin-bottom: 16px">
+            <label
+              style="
+                display: block;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                margin-bottom: 6px;
+              "
+              >Company Name</label
+            >
+            <input
+              type="text"
+              id="editCompany"
+              style="
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                font-size: 13px;
+              "
+              placeholder="e.g., Google, Microsoft"
+            />
+          </div>
+          <div style="margin-bottom: 16px">
+            <label
+              style="
+                display: block;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                margin-bottom: 6px;
+              "
+              >Position</label
+            >
+            <input
+              type="text"
+              id="editPosition"
+              style="
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                font-size: 13px;
+              "
+              placeholder="e.g., Software Engineer"
+            />
+          </div>
+          <div style="margin-bottom: 16px">
+            <label
+              style="
+                display: block;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                margin-bottom: 6px;
+              "
+              >Status</label
+            >
+            <select
+              id="editStatus"
+              style="
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                font-size: 13px;
+              "
+            >
+              <option value="applied">Applied</option>
+              <option value="interview">Interview</option>
+              <option value="rejected">Rejected</option>
+              <option value="accepted">Accepted</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 16px">
+            <label
+              style="
+                display: block;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                margin-bottom: 6px;
+              "
+              >Reminder Date (Optional)</label
+            >
+            <input
+              type="date"
+              id="editReminder"
+              style="
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                font-size: 13px;
+              "
+            />
+          </div>
+          <button id="saveUploadDetails" style="width: 100%; margin-top: 8px">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            Save Details
+          </button>
         </div>
       </div>
     </div>

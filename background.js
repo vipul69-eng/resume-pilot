@@ -58,11 +58,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         site: new URL(tab.url).hostname,
         url: tab.url,
         timestamp: Date.now(),
+        company: "",
+        position: "",
+        status: "applied",
+        reminder: null,
       };
 
       let uploadHistory = result.uploadHistory || [];
       uploadHistory.unshift(upload);
-      if (uploadHistory.length > 50) uploadHistory = uploadHistory.slice(0, 50);
+      if (uploadHistory.length > 100)
+        uploadHistory = uploadHistory.slice(0, 100);
 
       await chrome.storage.local.set({ uploadHistory });
     }
@@ -100,11 +105,16 @@ chrome.commands.onCommand.addListener(async (command) => {
         site: new URL(tab.url).hostname,
         url: tab.url,
         timestamp: Date.now(),
+        company: "",
+        position: "",
+        status: "applied",
+        reminder: null,
       };
 
       let uploadHistory = result.uploadHistory || [];
       uploadHistory.unshift(upload);
-      if (uploadHistory.length > 50) uploadHistory = uploadHistory.slice(0, 50);
+      if (uploadHistory.length > 100)
+        uploadHistory = uploadHistory.slice(0, 100);
 
       await chrome.storage.local.set({ uploadHistory });
     }

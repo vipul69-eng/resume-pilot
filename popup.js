@@ -7,6 +7,7 @@ let settings = {
   defaultResumeId: null,
 };
 let uploadHistory = [];
+let currentEditingUploadId = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
@@ -97,6 +98,19 @@ function setupEventListeners() {
   document.getElementById("previewModal").addEventListener("click", (e) => {
     if (e.target.id === "previewModal") closePreview();
   });
+
+  // Upload details modal
+  document
+    .getElementById("closeUploadDetails")
+    .addEventListener("click", closeUploadDetailsModal);
+  document
+    .getElementById("uploadDetailsModal")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "uploadDetailsModal") closeUploadDetailsModal();
+    });
+  document
+    .getElementById("saveUploadDetails")
+    .addEventListener("click", saveUploadDetails);
 }
 
 function switchTab(tabName) {
@@ -423,13 +437,20 @@ async function uploadToPage() {
       site: new URL(tab.url).hostname,
       url: tab.url,
       timestamp: Date.now(),
+      company: "",
+      position: "",
+      status: "applied",
+      reminder: null,
     };
     uploadHistory.unshift(upload);
-    if (uploadHistory.length > 50) uploadHistory = uploadHistory.slice(0, 50);
+    if (uploadHistory.length > 100) uploadHistory = uploadHistory.slice(0, 100);
 
     await chrome.storage.local.set({ resumes, uploadHistory });
 
     showStatus("Resume uploaded!", "success");
+
+    // Show upload details modal
+    setTimeout(() => openUploadDetailsModal(upload.id), 500);
   } catch (error) {
     showStatus("Failed: " + error.message, "error");
   }
@@ -525,25 +546,131 @@ function updateAnalytics() {
       '<div class="empty-state"><div class="empty-text">No uploads yet</div></div>';
   } else {
     historyEl.innerHTML = uploadHistory
-      .slice(0, 10)
+      .slice(0, 15)
       .map(
         (u) => `
-      <div class="upload-entry">
+      <div class="upload-entry" data-upload-id="${u.id}">
         <div class="upload-entry-header">
           <div class="upload-site">${escapeHtml(u.site)}</div>
           <div class="upload-time">${formatDate(u.timestamp)}</div>
         </div>
-        <div class="upload-resume">
-          <svg style="width:12px;height:12px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-          ${escapeHtml(u.resumeName)}
+        <div class="upload-details">
+          <div class="upload-detail-row">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span>${escapeHtml(u.resumeName)}</span>
+          </div>
+          ${
+            u.company
+              ? `
+            <div class="upload-detail-row">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+              <span>${escapeHtml(u.company)}</span>
+            </div>
+          `
+              : ""
+          }
+          ${
+            u.position
+              ? `
+            <div class="upload-detail-row">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              <span>${escapeHtml(u.position)}</span>
+            </div>
+          `
+              : ""
+          }
+          <div class="upload-detail-row">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="status-badge status-${u.status}">${u.status}</span>
+          </div>
+          ${
+            u.reminder
+              ? `
+            <div class="upload-detail-row">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <span>Reminder: ${new Date(
+                u.reminder
+              ).toLocaleDateString()}</span>
+            </div>
+          `
+              : ""
+          }
         </div>
+        <button class="secondary edit-history-btn" style="margin-top: 8px; padding: 6px 10px; font-size: 11px;" data-upload-id="${
+          u.id
+        }">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+          Edit Details
+        </button>
       </div>
     `
       )
       .join("");
+    // Attach event listeners to the new buttons
+    historyEl.querySelectorAll(".edit-history-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        openUploadDetailsModal(btn.dataset.uploadId);
+      });
+    });
   }
+}
+
+// Make editUpload globally accessible
+window.editUpload = function (uploadId) {
+  openUploadDetailsModal(uploadId);
+};
+
+function openUploadDetailsModal(uploadId) {
+  const upload = uploadHistory.find((u) => u.id === uploadId);
+  if (!upload) return;
+
+  currentEditingUploadId = uploadId;
+
+  document.getElementById("editCompany").value = upload.company || "";
+  document.getElementById("editPosition").value = upload.position || "";
+  document.getElementById("editStatus").value = upload.status || "applied";
+  document.getElementById("editReminder").value = upload.reminder
+    ? new Date(upload.reminder).toISOString().split("T")[0]
+    : "";
+
+  document.getElementById("uploadDetailsModal").classList.add("active");
+}
+
+function closeUploadDetailsModal() {
+  document.getElementById("uploadDetailsModal").classList.remove("active");
+  currentEditingUploadId = null;
+}
+
+async function saveUploadDetails() {
+  if (!currentEditingUploadId) return;
+
+  const upload = uploadHistory.find((u) => u.id === currentEditingUploadId);
+  if (!upload) return;
+
+  upload.company = document.getElementById("editCompany").value.trim();
+  upload.position = document.getElementById("editPosition").value.trim();
+  upload.status = document.getElementById("editStatus").value;
+
+  const reminderDate = document.getElementById("editReminder").value;
+  upload.reminder = reminderDate ? new Date(reminderDate).getTime() : null;
+
+  await chrome.storage.local.set({ uploadHistory });
+
+  closeUploadDetailsModal();
+  updateAnalytics();
+  showStatus("Details saved", "success");
 }
 
 async function clearHistory() {
