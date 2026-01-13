@@ -2,17 +2,12 @@
   "manifest_version": 3,
   "name": "Resume Pilot",
   "version": "1.0",
-  "description": "A place to store resumes and use globally across any website.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "description": "Your intelligent resume upload assistant for any website",
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "default_icon": {}
   },
   "content_scripts": [
     {
@@ -24,10 +19,13 @@
   "background": {
     "service_worker": "background.js"
   },
-  "icons": {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+  "commands": {
+    "quick-upload": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
+      },
+      "description": "Quick upload resume"
+    }
   }
 }

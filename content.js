@@ -86,7 +86,7 @@ function detectFileInputs() {
     });
 
     if (acceptsPDF) {
-      addQuickUploadButton();
+      //   addQuickUploadButton();
     }
   } else if (fileInputElements.length === 0 && uploadButton) {
     uploadButton.remove();
@@ -94,74 +94,77 @@ function detectFileInputs() {
   }
 }
 
-function addQuickUploadButton() {
-  if (uploadButton) return; // Already exists
+// function addQuickUploadButton() {
+//   if (uploadButton) return;
 
-  uploadButton = document.createElement("div");
-  uploadButton.id = "resume-pilot-button";
-  uploadButton.innerHTML = `
-    <button id="resume-pilot-upload-btn" style="
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-      z-index: 999999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    " onmouseover="this.style.background='#1d4ed8'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 99, 235, 0.5)'" 
-       onmouseout="this.style.background='#2563eb'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.4)'">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      Upload Resume
-    </button>
-  `;
+//   uploadButton = document.createElement("div");
+//   uploadButton.id = "resume-pilot-button";
+//   uploadButton.innerHTML = `
+//     <button id="resume-pilot-upload-btn" style="
+//       position: fixed;
+//       bottom: 24px;
+//       right: 24px;
+//       background: #2563eb;
+//       color: white;
+//       border: none;
+//       padding: 12px 20px;
+//       border-radius: 10px;
+//       font-size: 14px;
+//       font-weight: 600;
+//       cursor: pointer;
+//       box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+//       z-index: 999999;
+//       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+//       display: flex;
+//       align-items: center;
+//       gap: 8px;
+//       transition: all 0.2s;
+//       border: 1px solid rgba(255, 255, 255, 0.1);
+//     " onmouseover="this.style.background='#1d4ed8'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 99, 235, 0.5)'"
+//        onmouseout="this.style.background='#2563eb'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.4)'">
+//       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+//         <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+//       </svg>
+//       Upload Resume
+//     </button>
+//   `;
 
-  uploadButton.querySelector("button").addEventListener("click", async () => {
-    try {
-      const result = await chrome.storage.local.get([
-        "resumes",
-        "selectedResumeId",
-      ]);
-      const resumes = result.resumes || [];
-      const selectedId = result.selectedResumeId;
-      const resume = resumes.find((r) => r.id === selectedId);
+//   uploadButton.querySelector("button").addEventListener("click", async () => {
+//     try {
+//       const result = await chrome.storage.local.get([
+//         "resumes",
+//         "selectedResumeId",
+//       ]);
+//       const resumes = result.resumes || [];
+//       const selectedId = result.selectedResumeId;
+//       const resume = resumes.find((r) => r.id === selectedId);
 
-      if (!resume) {
-        showNotification(
-          "No resume selected. Click the extension icon to upload one.",
-          "error"
-        );
-        return;
-      }
+//       if (!resume) {
+//         showNotification(
+//           "No resume selected. Click the extension icon to upload one.",
+//           "error"
+//         );
+//         return;
+//       }
 
-      uploadResumeToInputs(resume);
-    } catch (error) {
-      showNotification("Error: " + error.message, "error");
-    }
-  });
+//       uploadResumeToInputs(resume);
+//       updateAnalytics();
+//     } catch (error) {
+//       showNotification("Error: " + error.message, "error");
+//     }
+//   });
 
-  document.body.appendChild(uploadButton);
-}
+//   document.body.appendChild(uploadButton);
+// }
 
-function uploadResumeToInputs(resume) {
+function uploadResumeToInputs(resume, showNotifications = true) {
   // Find all file inputs including hidden ones and those in shadow DOM
   const fileInputs = getAllFileInputs();
 
   if (fileInputs.length === 0) {
-    showNotification("No file upload fields found on this page", "error");
+    if (showNotifications) {
+      showNotification("No file upload fields found on this page", "error");
+    }
     return;
   }
 
@@ -233,15 +236,17 @@ function uploadResumeToInputs(resume) {
     }
   });
 
-  if (uploadedCount > 0) {
-    showNotification(
-      `Resume uploaded to ${uploadedCount} field${
-        uploadedCount > 1 ? "s" : ""
-      }`,
-      "success"
-    );
-  } else {
-    showNotification("No compatible file upload fields found", "error");
+  if (showNotifications) {
+    if (uploadedCount > 0) {
+      showNotification(
+        `Resume uploaded to ${uploadedCount} field${
+          uploadedCount > 1 ? "s" : ""
+        }`,
+        "success"
+      );
+    } else {
+      showNotification("No compatible file upload fields found", "error");
+    }
   }
 }
 
@@ -369,7 +374,7 @@ function showNotification(message, type = "success") {
 // Listen for messages from popup or background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "uploadResume") {
-    uploadResumeToInputs(request.resume);
+    uploadResumeToInputs(request.resume, request.showNotifications);
     sendResponse({ success: true });
   }
   return true;

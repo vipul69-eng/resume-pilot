@@ -1,15 +1,25 @@
 // Background service worker
-// Handles extension initialization and context menu
+// Handles extension initialization, context menu, and keyboard shortcuts
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log("Resume Upload Manager extension installed");
+  console.log("Resume Pilot installed");
 
-  // Initialize storage
-  const result = await chrome.storage.local.get(["resumes"]);
+  const result = await chrome.storage.local.get([
+    "resumes",
+    "settings",
+    "uploadHistory",
+  ]);
   if (!result.resumes) {
     await chrome.storage.local.set({
       resumes: [],
       selectedResumeId: null,
+      settings: {
+        autoUpload: false,
+        notifications: true,
+        darkMode: false,
+        defaultResumeId: null,
+      },
+      uploadHistory: [],
     });
   }
 
@@ -27,6 +37,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const result = await chrome.storage.local.get([
       "resumes",
       "selectedResumeId",
+      "settings",
     ]);
     const resume = result.resumes?.find(
       (r) => r.id === result.selectedResumeId
@@ -36,16 +47,30 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       await chrome.tabs.sendMessage(tab.id, {
         action: "uploadResume",
         resume: resume,
+        showNotifications: result.settings?.notifications !== false,
       });
-    } else {
-      // Show notification that no resume is selected
-      chrome.action.openPopup();
+
+      // Track upload
+      const upload = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+        resumeId: resume.id,
+        resumeName: resume.displayName || resume.name,
+        site: new URL(tab.url).hostname,
+        url: tab.url,
+        timestamp: Date.now(),
+      };
+
+      let uploadHistory = result.uploadHistory || [];
+      uploadHistory.unshift(upload);
+      if (uploadHistory.length > 50) uploadHistory = uploadHistory.slice(0, 50);
+
+      await chrome.storage.local.set({ uploadHistory });
     }
   }
 });
 
-// Handle keyboard shortcut (optional - can be added to manifest later)
-chrome.commands?.onCommand.addListener(async (command) => {
+// Handle keyboard shortcut (Ctrl+Shift+R / Cmd+Shift+R)
+chrome.commands.onCommand.addListener(async (command) => {
   if (command === "quick-upload") {
     const [tab] = await chrome.tabs.query({
       active: true,
@@ -54,16 +79,34 @@ chrome.commands?.onCommand.addListener(async (command) => {
     const result = await chrome.storage.local.get([
       "resumes",
       "selectedResumeId",
+      "settings",
     ]);
     const resume = result.resumes?.find(
       (r) => r.id === result.selectedResumeId
     );
 
-    if (resume) {
+    if (resume && tab) {
       await chrome.tabs.sendMessage(tab.id, {
         action: "uploadResume",
         resume: resume,
+        showNotifications: result.settings?.notifications !== false,
       });
+
+      // Track upload
+      const upload = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+        resumeId: resume.id,
+        resumeName: resume.displayName || resume.name,
+        site: new URL(tab.url).hostname,
+        url: tab.url,
+        timestamp: Date.now(),
+      };
+
+      let uploadHistory = result.uploadHistory || [];
+      uploadHistory.unshift(upload);
+      if (uploadHistory.length > 50) uploadHistory = uploadHistory.slice(0, 50);
+
+      await chrome.storage.local.set({ uploadHistory });
     }
   }
 });

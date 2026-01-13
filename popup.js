@@ -1,20 +1,131 @@
 let resumes = [];
 let selectedResumeId = null;
+let settings = {
+  autoUpload: false,
+  notifications: true,
+  darkMode: false,
+  defaultResumeId: null,
+};
+let uploadHistory = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadResumes();
+  await loadData();
   setupEventListeners();
+  applyTheme();
+  updateAnalytics();
 });
 
-async function loadResumes() {
+async function loadData() {
   const result = await chrome.storage.local.get([
     "resumes",
     "selectedResumeId",
+    "settings",
+    "uploadHistory",
   ]);
   resumes = result.resumes || [];
   selectedResumeId = result.selectedResumeId || null;
+  settings = { ...settings, ...(result.settings || {}) };
+  uploadHistory = result.uploadHistory || [];
 
   renderResumeList();
+  renderSettings();
+}
+
+function setupEventListeners() {
+  // Tab switching
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+  });
+
+  // Theme toggle
+  document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+
+  // Upload area
+  const uploadArea = document.getElementById("uploadArea");
+  const fileInput = document.getElementById("fileInput");
+
+  uploadArea.addEventListener("click", () => fileInput.click());
+  uploadArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    uploadArea.classList.add("dragover");
+  });
+  uploadArea.addEventListener("dragleave", () =>
+    uploadArea.classList.remove("dragover")
+  );
+  uploadArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  });
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) handleFileUpload(file);
+  });
+
+  // Buttons
+  document
+    .getElementById("uploadToPageBtn")
+    .addEventListener("click", uploadToPage);
+  document.getElementById("clearAllBtn").addEventListener("click", clearAll);
+  document
+    .getElementById("clearHistoryBtn")
+    .addEventListener("click", clearHistory);
+
+  // Settings toggles
+  document
+    .getElementById("autoUploadToggle")
+    .addEventListener("click", () => toggleSetting("autoUpload"));
+  document
+    .getElementById("notificationsToggle")
+    .addEventListener("click", () => toggleSetting("notifications"));
+  document
+    .getElementById("darkModeToggle")
+    .addEventListener("click", () => toggleSetting("darkMode"));
+  document
+    .getElementById("defaultResumeSelect")
+    .addEventListener("change", (e) => {
+      settings.defaultResumeId = e.target.value || null;
+      saveSettings();
+    });
+
+  // Preview modal
+  document
+    .getElementById("closePreview")
+    .addEventListener("click", closePreview);
+  document.getElementById("previewModal").addEventListener("click", (e) => {
+    if (e.target.id === "previewModal") closePreview();
+  });
+}
+
+function switchTab(tabName) {
+  document
+    .querySelectorAll(".tab")
+    .forEach((t) => t.classList.remove("active"));
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((c) => c.classList.remove("active"));
+
+  document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
+  document.getElementById(`${tabName}Content`).classList.add("active");
+
+  if (tabName === "analytics") updateAnalytics();
+}
+
+function toggleTheme() {
+  settings.darkMode = !settings.darkMode;
+  saveSettings();
+  applyTheme();
+  updateSettingsUI();
+}
+
+function applyTheme() {
+  if (settings.darkMode) {
+    document.body.classList.add("dark-mode");
+  } else {
+    document.body.classList.remove("dark-mode");
+  }
 }
 
 function renderResumeList() {
@@ -59,13 +170,21 @@ function renderResumeList() {
           </button>
         `
             : `
-          <button class="icon-button select-btn" data-id="${resume.id}" title="Select this resume">
+          <button class="icon-button select-btn" data-id="${resume.id}" title="Select">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10"/>
             </svg>
           </button>
         `
         }
+        <button class="icon-button preview-btn" data-id="${
+          resume.id
+        }" title="Preview">
+          <svg class="eye-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+        </button>
         <button class="icon-button edit edit-btn" data-id="${
           resume.id
         }" title="Rename">
@@ -86,12 +205,10 @@ function renderResumeList() {
     )
     .join("");
 
-  // Add event listeners
+  // Event listeners
   document.querySelectorAll(".resume-info").forEach((el) => {
     el.addEventListener("click", (e) => {
-      if (!e.target.closest("input")) {
-        selectResume(el.dataset.id);
-      }
+      if (!e.target.closest("input")) selectResume(el.dataset.id);
     });
   });
 
@@ -99,6 +216,13 @@ function renderResumeList() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       selectResume(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".preview-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      previewResume(btn.dataset.id);
     });
   });
 
@@ -117,57 +241,20 @@ function renderResumeList() {
   });
 }
 
-function setupEventListeners() {
-  const uploadArea = document.getElementById("uploadArea");
-  const fileInput = document.getElementById("fileInput");
-
-  uploadArea.addEventListener("click", () => fileInput.click());
-
-  uploadArea.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    uploadArea.classList.add("dragover");
-  });
-
-  uploadArea.addEventListener("dragleave", () => {
-    uploadArea.classList.remove("dragover");
-  });
-
-  uploadArea.addEventListener("drop", (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileUpload(file);
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) handleFileUpload(file);
-  });
-
-  document
-    .getElementById("uploadToPageBtn")
-    .addEventListener("click", uploadToPage);
-  document.getElementById("clearAllBtn").addEventListener("click", clearAll);
-}
-
 async function handleFileUpload(file) {
-  // Validate file
   if (file.type !== "application/pdf") {
     showStatus("Please upload a PDF file only", "error");
     return;
   }
 
   if (file.size > 10 * 1024 * 1024) {
-    // 10MB limit
     showStatus("File size must be less than 10MB", "error");
     return;
   }
 
   try {
-    // Read file as base64
     const base64 = await readFileAsBase64(file);
 
-    // Limit filename length for display
     let displayName = file.name;
     if (displayName.length > 35) {
       const ext = displayName.substring(displayName.lastIndexOf("."));
@@ -182,24 +269,22 @@ async function handleFileUpload(file) {
       type: file.type,
       data: base64,
       uploadedAt: Date.now(),
+      usageCount: 0,
     };
 
     resumes.push(newResume);
 
-    // Set as selected if it's the first resume
     if (resumes.length === 1) {
       selectedResumeId = newResume.id;
     }
 
     await chrome.storage.local.set({ resumes, selectedResumeId });
-    await loadResumes();
+    await loadData();
 
-    showStatus(`${file.name} uploaded successfully!`, "success");
-
-    // Clear file input
+    showStatus("Resume uploaded successfully!", "success");
     document.getElementById("fileInput").value = "";
   } catch (error) {
-    showStatus("Failed to upload file: " + error.message, "error");
+    showStatus("Failed to upload: " + error.message, "error");
   }
 }
 
@@ -219,6 +304,25 @@ async function selectResume(id) {
   showStatus("Resume selected", "success");
 }
 
+function previewResume(id) {
+  const resume = resumes.find((r) => r.id === id);
+  if (!resume) return;
+
+  const modal = document.getElementById("previewModal");
+  const iframe = document.getElementById("previewFrame");
+
+  iframe.src = resume.data;
+  modal.classList.add("active");
+}
+
+function closePreview() {
+  const modal = document.getElementById("previewModal");
+  const iframe = document.getElementById("previewFrame");
+
+  modal.classList.remove("active");
+  iframe.src = "";
+}
+
 function startRenaming(id) {
   const resume = resumes.find((r) => r.id === id);
   if (!resume) return;
@@ -227,8 +331,6 @@ function startRenaming(id) {
   if (!nameElement) return;
 
   const currentName = resume.displayName || resume.name;
-
-  // Replace text with input
   nameElement.innerHTML = `<input type="text" value="${escapeHtml(
     currentName
   )}" data-id="${id}" maxlength="40" />`;
@@ -237,11 +339,9 @@ function startRenaming(id) {
   input.focus();
   input.select();
 
-  // Save on blur or Enter
   const saveRename = async () => {
     let newName = input.value.trim();
     if (newName && newName !== currentName) {
-      // Limit to 35 characters for display
       if (newName.length > 35) {
         newName = newName.substring(0, 32) + "...";
       }
@@ -262,14 +362,7 @@ function startRenaming(id) {
     }
   });
 
-  // Stop propagation to prevent selection
   input.addEventListener("click", (e) => e.stopPropagation());
-}
-
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 async function deleteResume(id) {
@@ -282,18 +375,18 @@ async function deleteResume(id) {
   }
 
   await chrome.storage.local.set({ resumes, selectedResumeId });
-  await loadResumes();
+  await loadData();
   showStatus("Resume deleted", "success");
 }
 
 async function clearAll() {
-  if (!confirm("Are you sure you want to delete all resumes?")) return;
+  if (!confirm("Delete all resumes?")) return;
 
   resumes = [];
   selectedResumeId = null;
 
   await chrome.storage.local.set({ resumes, selectedResumeId });
-  await loadResumes();
+  await loadData();
   showStatus("All resumes cleared", "success");
 }
 
@@ -318,26 +411,38 @@ async function uploadToPage() {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: uploadResumeToPage,
-      args: [resume],
+      args: [resume, settings.notifications],
     });
 
-    showStatus("Resume uploaded to page!", "success");
+    // Track upload
+    resume.usageCount = (resume.usageCount || 0) + 1;
+    const upload = {
+      id: generateId(),
+      resumeId: resume.id,
+      resumeName: resume.displayName || resume.name,
+      site: new URL(tab.url).hostname,
+      url: tab.url,
+      timestamp: Date.now(),
+    };
+    uploadHistory.unshift(upload);
+    if (uploadHistory.length > 50) uploadHistory = uploadHistory.slice(0, 50);
+
+    await chrome.storage.local.set({ resumes, uploadHistory });
+
+    showStatus("Resume uploaded!", "success");
   } catch (error) {
-    showStatus("Failed to upload: " + error.message, "error");
+    showStatus("Failed: " + error.message, "error");
   }
 }
 
-// This function runs in the context of the web page
-function uploadResumeToPage(resume) {
-  // Find all file input elements
+function uploadResumeToPage(resume, showNotifications) {
   const fileInputs = document.querySelectorAll('input[type="file"]');
 
   if (fileInputs.length === 0) {
-    alert("No file upload fields found on this page");
+    if (showNotifications) alert("No file upload fields found");
     return;
   }
 
-  // Convert base64 back to File object
   const base64Data = resume.data.split(",")[1];
   const binaryData = atob(base64Data);
   const bytes = new Uint8Array(binaryData.length);
@@ -347,17 +452,17 @@ function uploadResumeToPage(resume) {
   }
 
   const blob = new Blob([bytes], { type: resume.type });
-  const file = new File([blob], resume.name, { type: resume.type });
+  const file = new File([blob], resume.name, {
+    type: resume.type,
+    lastModified: Date.now(),
+  });
 
-  // Create a DataTransfer object to set the files
   const dataTransfer = new DataTransfer();
   dataTransfer.items.add(file);
 
-  let uploadedCount = 0;
+  let count = 0;
 
-  // Upload to all visible file inputs
   fileInputs.forEach((input) => {
-    // Check if input accepts PDF files
     const accept = input.getAttribute("accept");
     if (
       !accept ||
@@ -365,47 +470,132 @@ function uploadResumeToPage(resume) {
       accept.includes("application/pdf") ||
       accept === "*"
     ) {
-      input.files = dataTransfer.files;
-
-      // Trigger change events
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-
-      uploadedCount++;
+      try {
+        input.files = dataTransfer.files;
+        ["input", "change", "blur"].forEach((e) =>
+          input.dispatchEvent(new Event(e, { bubbles: true }))
+        );
+        count++;
+      } catch (e) {}
     }
   });
 
-  if (uploadedCount > 0) {
-    // Show success notification
-    const notification = document.createElement("div");
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #10b981;
-      color: white;
-      padding: 16px 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 999999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      animation: slideIn 0.3s ease-out;
-    `;
-
-    notification.textContent = `✓ Resume uploaded to ${uploadedCount} field${
-      uploadedCount > 1 ? "s" : ""
+  if (showNotifications && count > 0) {
+    const notif = document.createElement("div");
+    notif.style.cssText = `position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:9999999;font:500 13px system-ui;animation:slideIn 0.3s`;
+    notif.textContent = `✓ Resume uploaded to ${count} field${
+      count > 1 ? "s" : ""
     }`;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      notification.style.animation = "slideIn 0.3s ease-out reverse";
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 3000);
   }
 }
 
+// Analytics
+function updateAnalytics() {
+  document.getElementById("totalUploads").textContent = uploadHistory.length;
+
+  const uniqueSites = new Set(uploadHistory.map((u) => u.site)).size;
+  document.getElementById("uniqueSites").textContent = uniqueSites;
+
+  // Most used resume
+  const resumeUsage = {};
+  uploadHistory.forEach((u) => {
+    resumeUsage[u.resumeId] = (resumeUsage[u.resumeId] || 0) + 1;
+  });
+  const mostUsedId = Object.keys(resumeUsage).sort(
+    (a, b) => resumeUsage[b] - resumeUsage[a]
+  )[0];
+  const mostUsed = resumes.find((r) => r.id === mostUsedId);
+  document.getElementById("mostUsedResume").textContent = mostUsed
+    ? (mostUsed.displayName || mostUsed.name).substring(0, 10)
+    : "-";
+
+  // Last upload
+  if (uploadHistory.length > 0) {
+    document.getElementById("lastUpload").textContent = formatDate(
+      uploadHistory[0].timestamp
+    );
+  }
+
+  // Upload history
+  const historyEl = document.getElementById("uploadHistory");
+  if (uploadHistory.length === 0) {
+    historyEl.innerHTML =
+      '<div class="empty-state"><div class="empty-text">No uploads yet</div></div>';
+  } else {
+    historyEl.innerHTML = uploadHistory
+      .slice(0, 10)
+      .map(
+        (u) => `
+      <div class="upload-entry">
+        <div class="upload-entry-header">
+          <div class="upload-site">${escapeHtml(u.site)}</div>
+          <div class="upload-time">${formatDate(u.timestamp)}</div>
+        </div>
+        <div class="upload-resume">
+          <svg style="width:12px;height:12px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          ${escapeHtml(u.resumeName)}
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+}
+
+async function clearHistory() {
+  if (!confirm("Clear all upload history?")) return;
+  uploadHistory = [];
+  await chrome.storage.local.set({ uploadHistory });
+  updateAnalytics();
+  showStatus("History cleared", "success");
+}
+
+// Settings
+function renderSettings() {
+  updateSettingsUI();
+
+  const select = document.getElementById("defaultResumeSelect");
+  select.innerHTML =
+    '<option value="">None</option>' +
+    resumes
+      .map(
+        (r) =>
+          `<option value="${r.id}" ${
+            r.id === settings.defaultResumeId ? "selected" : ""
+          }>${escapeHtml(r.displayName || r.name)}</option>`
+      )
+      .join("");
+}
+
+function updateSettingsUI() {
+  document
+    .getElementById("autoUploadToggle")
+    .classList.toggle("active", settings.autoUpload);
+  document
+    .getElementById("notificationsToggle")
+    .classList.toggle("active", settings.notifications);
+  document
+    .getElementById("darkModeToggle")
+    .classList.toggle("active", settings.darkMode);
+}
+
+async function toggleSetting(setting) {
+  settings[setting] = !settings[setting];
+  await saveSettings();
+  updateSettingsUI();
+
+  if (setting === "darkMode") applyTheme();
+}
+
+async function saveSettings() {
+  await chrome.storage.local.set({ settings });
+}
+
+// Utilities
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -421,12 +611,18 @@ function formatDate(timestamp) {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return "just now";
-  if (diff < 3600000) return Math.floor(diff / 60000) + " min ago";
-  if (diff < 86400000) return Math.floor(diff / 3600000) + " hours ago";
-  if (diff < 604800000) return Math.floor(diff / 86400000) + " days ago";
+  if (diff < 60000) return "now";
+  if (diff < 3600000) return Math.floor(diff / 60000) + "m";
+  if (diff < 86400000) return Math.floor(diff / 3600000) + "h";
+  if (diff < 604800000) return Math.floor(diff / 86400000) + "d";
 
   return date.toLocaleDateString();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function showStatus(message, type) {
@@ -438,7 +634,5 @@ function showStatus(message, type) {
 
   status.innerHTML = icon + "<span>" + message + "</span>";
   status.className = `status ${type}`;
-  setTimeout(() => {
-    status.className = "status";
-  }, 3000);
+  setTimeout(() => (status.className = "status"), 3000);
 }

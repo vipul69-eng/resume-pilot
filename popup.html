@@ -10,90 +10,218 @@
       }
 
       body {
-        width: 380px;
+        width: 420px;
+        height: 600px;
         padding: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
           sans-serif;
-        background: #ffffff;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background 0.2s, color 0.2s;
+      }
+
+      /* Light theme (default) */
+      body {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #fafafa;
+        --border-color: #e5e7eb;
+        --border-hover: #cbd5e1;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --text-tertiary: #9ca3af;
+        --accent-color: #2563eb;
+        --accent-hover: #1d4ed8;
+        --accent-light: #eff6ff;
+        --success-bg: #d1fae5;
+        --success-text: #065f46;
+        --error-bg: #fee2e2;
+        --error-text: #991b1b;
+        --hover-bg: #f3f4f6;
+        --delete-hover: #fee2e2;
+      }
+
+      /* Dark theme */
+      body.dark-mode {
+        --bg-primary: #1f2937;
+        --bg-secondary: #111827;
+        --bg-tertiary: #374151;
+        --border-color: #374151;
+        --border-hover: #4b5563;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --text-tertiary: #9ca3af;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+        --accent-light: #1e3a8a;
+        --success-bg: #065f46;
+        --success-text: #d1fae5;
+        --error-bg: #991b1b;
+        --error-text: #fee2e2;
+        --hover-bg: #374151;
+        --delete-hover: #7f1d1d;
       }
 
       .header {
-        padding: 20px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-primary);
       }
 
       .logo {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      .logo-left {
+        display: flex;
+        align-items: center;
         gap: 10px;
-        margin-bottom: 6px;
       }
 
       .logo-icon {
-        width: 24px;
-        height: 24px;
-        color: #2563eb;
+        width: 22px;
+        height: 22px;
+        color: var(--accent-color);
       }
 
       h1 {
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 600;
-        color: #111827;
+        color: var(--text-primary);
       }
 
-      .subtitle {
-        color: #6b7280;
+      .header-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .icon-btn {
+        background: none;
+        border: none;
+        padding: 6px;
+        cursor: pointer;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+        color: var(--text-secondary);
+      }
+
+      .icon-btn:hover {
+        background: var(--hover-bg);
+      }
+
+      .icon-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-top: 12px;
+      }
+
+      .tab {
+        flex: 1;
+        padding: 8px 12px;
+        background: none;
+        border: none;
+        cursor: pointer;
         font-size: 13px;
-        margin-top: 4px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        border-radius: 6px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .tab:hover {
+        background: var(--hover-bg);
+      }
+
+      .tab.active {
+        background: var(--accent-color);
+        color: white;
+      }
+
+      .tab svg {
+        width: 16px;
+        height: 16px;
       }
 
       .content {
-        padding: 20px;
+        height: calc(600px - 110px);
+        overflow-y: auto;
+        padding: 16px 20px;
+      }
+
+      .content::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .content::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+      }
+
+      .content::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
       }
 
       .upload-area {
-        border: 2px dashed #d1d5db;
+        border: 2px dashed var(--border-color);
         border-radius: 8px;
-        padding: 24px;
+        padding: 20px;
         text-align: center;
         cursor: pointer;
         transition: all 0.2s;
-        margin-bottom: 20px;
-        background: #fafafa;
+        margin-bottom: 16px;
+        background: var(--bg-tertiary);
       }
 
       .upload-area:hover {
-        border-color: #2563eb;
-        background: #f0f9ff;
-      }
-
-      .upload-area.dragover {
-        border-color: #2563eb;
-        background: #dbeafe;
+        border-color: var(--accent-color);
+        background: var(--accent-light);
       }
 
       .upload-icon-wrapper {
         display: flex;
         justify-content: center;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
 
       .upload-icon {
-        width: 32px;
-        height: 32px;
-        color: #6b7280;
+        width: 28px;
+        height: 28px;
+        color: var(--text-secondary);
       }
 
       .upload-text {
-        color: #111827;
-        font-size: 14px;
+        color: var(--text-primary);
+        font-size: 13px;
         font-weight: 500;
         margin-bottom: 4px;
       }
 
       .upload-hint {
-        color: #9ca3af;
-        font-size: 12px;
+        color: var(--text-tertiary);
+        font-size: 11px;
       }
 
       input[type="file"] {
@@ -101,12 +229,12 @@
       }
 
       .resume-list {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
       }
 
       .resume-item {
-        padding: 12px;
-        border: 1px solid #e5e7eb;
+        padding: 10px;
+        border: 1px solid var(--border-color);
         border-radius: 6px;
         margin-bottom: 8px;
         display: flex;
@@ -116,29 +244,29 @@
       }
 
       .resume-item:hover {
-        border-color: #cbd5e1;
-        background: #f9fafb;
+        border-color: var(--border-hover);
+        background: var(--hover-bg);
       }
 
       .resume-item.selected {
-        border-color: #2563eb;
-        background: #eff6ff;
+        border-color: var(--accent-color);
+        background: var(--accent-light);
       }
 
       .resume-info {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         cursor: pointer;
         min-width: 0;
         overflow: hidden;
       }
 
       .file-icon {
-        width: 18px;
-        height: 18px;
-        color: #2563eb;
+        width: 16px;
+        height: 16px;
+        color: var(--accent-color);
         flex-shrink: 0;
       }
 
@@ -149,47 +277,41 @@
 
       .resume-name {
         font-weight: 500;
-        color: #111827;
-        font-size: 13px;
+        color: var(--text-primary);
+        font-size: 12px;
         margin-bottom: 2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        cursor: text;
       }
 
       .resume-name input {
         width: 100%;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
-        padding: 4px 6px;
-        font-size: 13px;
+        padding: 3px 6px;
+        font-size: 12px;
         font-weight: 500;
-        color: #111827;
+        color: var(--text-primary);
+        background: var(--bg-primary);
         font-family: inherit;
-        max-width: 100%;
-      }
-
-      .resume-name input:focus {
-        outline: none;
-        border-color: #2563eb;
       }
 
       .resume-meta {
-        font-size: 11px;
-        color: #6b7280;
+        font-size: 10px;
+        color: var(--text-secondary);
       }
 
       .resume-actions {
         display: flex;
-        gap: 4px;
+        gap: 3px;
         flex-shrink: 0;
       }
 
       .icon-button {
         background: none;
         border: none;
-        padding: 6px;
+        padding: 5px;
         cursor: pointer;
         border-radius: 4px;
         display: flex;
@@ -199,207 +321,578 @@
       }
 
       .icon-button:hover {
-        background: #f3f4f6;
+        background: var(--hover-bg);
       }
 
       .icon-button.delete:hover {
-        background: #fee2e2;
-      }
-
-      .icon-button.edit:hover {
-        background: #dbeafe;
+        background: var(--delete-hover);
       }
 
       .icon-button svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
       }
 
       .check-icon {
         color: #10b981;
       }
-
       .trash-icon {
         color: #dc2626;
       }
-
       .edit-icon {
-        color: #2563eb;
+        color: var(--accent-color);
+      }
+      .eye-icon {
+        color: var(--text-secondary);
       }
 
       button {
         width: 100%;
-        background: #2563eb;
+        background: var(--accent-color);
         color: white;
         border: none;
-        padding: 11px 16px;
+        padding: 10px 14px;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 500;
         transition: background 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 6px;
       }
 
       button:hover {
-        background: #1d4ed8;
+        background: var(--accent-hover);
       }
 
       button.secondary {
-        background: #f3f4f6;
-        color: #374151;
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
       }
 
       button.secondary:hover {
-        background: #e5e7eb;
+        background: var(--hover-bg);
       }
 
       button svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
       }
 
       .empty-state {
         text-align: center;
-        padding: 32px 20px;
-        color: #6b7280;
+        padding: 32px 16px;
+        color: var(--text-secondary);
       }
 
       .empty-icon {
-        width: 48px;
-        height: 48px;
-        color: #d1d5db;
-        margin: 0 auto 12px;
+        width: 40px;
+        height: 40px;
+        color: var(--text-tertiary);
+        margin: 0 auto 10px;
       }
 
       .empty-text {
-        font-size: 14px;
+        font-size: 13px;
         margin-bottom: 4px;
       }
 
       .empty-hint {
-        font-size: 12px;
-        color: #9ca3af;
+        font-size: 11px;
+        color: var(--text-tertiary);
       }
 
       .status {
-        padding: 10px 16px;
+        padding: 8px 12px;
         border-radius: 6px;
-        margin-bottom: 16px;
-        font-size: 13px;
+        margin-bottom: 12px;
+        font-size: 12px;
         display: none;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
 
       .status svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         flex-shrink: 0;
       }
 
       .status.success {
-        background: #d1fae5;
-        color: #065f46;
+        background: var(--success-bg);
+        color: var(--success-text);
         display: flex;
       }
 
       .status.error {
-        background: #fee2e2;
-        color: #991b1b;
+        background: var(--error-bg);
+        color: var(--error-text);
         display: flex;
       }
 
       .footer-actions {
         display: flex;
         gap: 8px;
-        padding-top: 16px;
-        border-top: 1px solid #e5e7eb;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
       }
 
       .footer-actions button {
         width: auto;
         flex: 1;
       }
+
+      /* Analytics Styles */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .stat-card {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--accent-color);
+        margin-bottom: 4px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .analytics-section {
+        margin-bottom: 20px;
+      }
+
+      .section-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .section-title svg {
+        width: 16px;
+        height: 16px;
+        color: var(--accent-color);
+      }
+
+      .upload-entry {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 8px;
+      }
+
+      .upload-entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 6px;
+      }
+
+      .upload-site {
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--text-primary);
+        word-break: break-word;
+      }
+
+      .upload-time {
+        font-size: 10px;
+        color: var(--text-tertiary);
+        white-space: nowrap;
+      }
+
+      .upload-resume {
+        font-size: 11px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* Settings Styles */
+      .setting-item {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .setting-item:last-child {
+        border-bottom: none;
+      }
+
+      .setting-info {
+        flex: 1;
+      }
+
+      .setting-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+      }
+
+      .setting-desc {
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .toggle {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        background: var(--border-color);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .toggle.active {
+        background: var(--accent-color);
+      }
+
+      .toggle-slider {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+      }
+
+      .toggle.active .toggle-slider {
+        transform: translateX(20px);
+      }
+
+      select {
+        padding: 6px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      /* Preview Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal.active {
+        display: flex;
+      }
+
+      .modal-content {
+        background: var(--bg-primary);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .modal-body {
+        flex: 1;
+        overflow: auto;
+        padding: 20px;
+      }
+
+      .preview-iframe {
+        width: 100%;
+        height: 400px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+      }
     </style>
   </head>
   <body>
     <div class="header">
       <div class="logo">
-        <svg
-          class="logo-icon"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-        <h1>Resume Pilot</h1>
+        <div class="logo-left">
+          <svg
+            class="logo-icon"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <h1>Resume Pilot</h1>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="themeToggle" title="Toggle dark mode">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="subtitle">Upload resumes instantly to any website</div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="resumes">
+          <svg
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Resumes
+        </button>
+        <button class="tab" data-tab="analytics">
+          <svg
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          Analytics
+        </button>
+        <button class="tab" data-tab="settings">
+          <svg
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Settings
+        </button>
+      </div>
     </div>
 
     <div class="content">
       <div id="status" class="status"></div>
 
-      <div class="upload-area" id="uploadArea">
-        <div class="upload-icon-wrapper">
-          <svg
-            class="upload-icon"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
+      <!-- Resumes Tab -->
+      <div class="tab-content active" id="resumesContent">
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon-wrapper">
+            <svg
+              class="upload-icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
+            </svg>
+          </div>
+          <div class="upload-text">Drop PDF or click to upload</div>
+          <div class="upload-hint">Max 10MB</div>
+          <input type="file" id="fileInput" accept=".pdf" />
         </div>
-        <div class="upload-text">Drop PDF here or click to upload</div>
-        <div class="upload-hint">Maximum file size: 10MB</div>
-        <input type="file" id="fileInput" accept=".pdf" />
-      </div>
 
-      <div id="resumeList" class="resume-list"></div>
+        <div id="resumeList" class="resume-list"></div>
 
-      <div id="emptyState" class="empty-state" style="display: none">
-        <svg
-          class="empty-icon"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-        <div class="empty-text">No resumes yet</div>
-        <div class="empty-hint">Upload your first PDF resume above</div>
-      </div>
-
-      <div class="footer-actions">
-        <button id="uploadToPageBtn">
+        <div id="emptyState" class="empty-state" style="display: none">
           <svg
+            class="empty-icon"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.5"
             viewBox="0 0 24 24"
           >
             <path
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          Upload to Page
-        </button>
-        <button id="clearAllBtn" class="secondary">
+          <div class="empty-text">No resumes yet</div>
+          <div class="empty-hint">Upload your first PDF</div>
+        </div>
+
+        <div class="footer-actions">
+          <button id="uploadToPageBtn">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
+            </svg>
+            Upload
+          </button>
+          <button id="clearAllBtn" class="secondary">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Analytics Tab -->
+      <div class="tab-content" id="analyticsContent">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="totalUploads">0</div>
+            <div class="stat-label">Total Uploads</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="uniqueSites">0</div>
+            <div class="stat-label">Unique Sites</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="mostUsedResume">-</div>
+            <div class="stat-label">Most Used</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="lastUpload">-</div>
+            <div class="stat-label">Last Upload</div>
+          </div>
+        </div>
+
+        <div class="analytics-section">
+          <div class="section-title">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Recent Uploads
+          </div>
+          <div id="uploadHistory"></div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div class="tab-content" id="settingsContent">
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-label">Auto-upload on page load</div>
+            <div class="setting-desc">
+              Automatically upload when file input is detected
+            </div>
+          </div>
+          <div class="toggle" id="autoUploadToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-label">Show notifications</div>
+            <div class="setting-desc">Display upload success notifications</div>
+          </div>
+          <div class="toggle active" id="notificationsToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-label">Dark mode</div>
+            <div class="setting-desc">Use dark theme</div>
+          </div>
+          <div class="toggle" id="darkModeToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-label">Default resume</div>
+            <div class="setting-desc">Auto-select this resume</div>
+          </div>
+          <select id="defaultResumeSelect">
+            <option value="">None</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-label">Keyboard shortcut</div>
+            <div class="setting-desc">Ctrl+Shift+U (Cmd+Shift+U on Mac)</div>
+          </div>
+        </div>
+
+        <button id="clearHistoryBtn" class="secondary" style="margin-top: 16px">
           <svg
             fill="none"
             stroke="currentColor"
@@ -410,7 +903,30 @@
               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
             />
           </svg>
+          Clear Upload History
         </button>
+      </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal" id="previewModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Resume Preview</div>
+          <button class="icon-btn" id="closePreview">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <iframe id="previewFrame" class="preview-iframe"></iframe>
+        </div>
       </div>
     </div>
 
