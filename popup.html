@@ -458,11 +458,10 @@
         border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 12px;
-        text-align: center;
       }
 
       .stat-value {
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 700;
         color: var(--accent-color);
         margin-bottom: 4px;
@@ -471,8 +470,133 @@
       .stat-label {
         font-size: 11px;
         color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-weight: 500;
+      }
+
+      .stat-sublabel {
+        font-size: 10px;
+        color: var(--text-tertiary);
+        margin-top: 2px;
+      }
+
+      .chart-container {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+
+      .chart-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+      }
+
+      .progress-bar {
+        background: var(--border-color);
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: var(--accent-color);
+        transition: width 0.3s;
+      }
+
+      .companies-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .company-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        background: var(--bg-secondary);
+        border-radius: 6px;
+      }
+
+      .company-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .company-count {
+        font-size: 11px;
+        color: var(--text-secondary);
+        background: var(--hover-bg);
+        padding: 2px 8px;
+        border-radius: 10px;
+      }
+
+      .upgrade-banner {
+        background: linear-gradient(
+          135deg,
+          var(--accent-color) 0%,
+          #ff8787 100%
+        );
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        color: white;
+        text-align: center;
+      }
+
+      .upgrade-title {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+
+      .upgrade-desc {
+        font-size: 11px;
+        opacity: 0.95;
+        margin-bottom: 12px;
+      }
+
+      .upgrade-btn {
+        background: white;
+        color: var(--accent-color);
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .upgrade-btn:hover {
+        transform: scale(1.05);
+      }
+
+      .feature-locked {
+        position: relative;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .lock-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: var(--accent-color);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
 
       .analytics-section {
@@ -839,7 +963,7 @@
             </svg>
           </div>
           <div class="upload-text">Drop PDF or click to upload</div>
-          <div class="upload-hint">Max 10MB</div>
+          <div class="upload-hint">Free: 2 resumes | Pro: Unlimited</div>
           <input type="file" id="fileInput" accept=".pdf" />
         </div>
 
@@ -892,22 +1016,150 @@
 
       <!-- Analytics Tab -->
       <div class="tab-content" id="analyticsContent">
+        <!-- Free tier: Show upgrade banner -->
+        <div class="upgrade-banner" id="upgradeBanner" style="display: none">
+          <div class="upgrade-title">📊 Unlock Advanced Analytics</div>
+          <div class="upgrade-desc">
+            Track response rates, optimize your applications, and land more
+            interviews
+          </div>
+          <button class="upgrade-btn" id="upgradeBtn">
+            Upgrade to Pro - $4.99/mo
+          </button>
+        </div>
+
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-value" id="totalUploads">0</div>
-            <div class="stat-label">Total Uploads</div>
+            <div class="stat-value" id="totalApplications">0</div>
+            <div class="stat-label">Applications</div>
+            <div class="stat-sublabel">This month</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="uniqueSites">0</div>
-            <div class="stat-label">Unique Sites</div>
+            <div class="stat-value" id="responseRate">0%</div>
+            <div class="stat-label">Response Rate</div>
+            <div class="stat-sublabel">Last 30 days</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="mostUsedResume">-</div>
-            <div class="stat-label">Most Used</div>
+            <div class="stat-value" id="avgTimeToApply">-</div>
+            <div class="stat-label">Avg Time Saved</div>
+            <div class="stat-sublabel">Per application</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="lastUpload">-</div>
-            <div class="stat-label">Last Upload</div>
+            <div class="stat-value" id="activeApplications">0</div>
+            <div class="stat-label">In Progress</div>
+            <div class="stat-sublabel">Awaiting response</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Application Progress</div>
+          <div style="margin-bottom: 8px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+              "
+            >
+              <span style="font-size: 11px; color: var(--text-secondary)"
+                >Applied</span
+              >
+              <span
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  color: var(--text-primary);
+                "
+                id="appliedCount"
+                >0</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="appliedBar"
+                style="width: 0%"
+              ></div>
+            </div>
+          </div>
+          <div style="margin-bottom: 8px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+              "
+            >
+              <span style="font-size: 11px; color: var(--text-secondary)"
+                >Interviewing</span
+              >
+              <span
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  color: var(--text-primary);
+                "
+                id="interviewCount"
+                >0</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="interviewBar"
+                style="width: 0%; background: #fbbf24"
+              ></div>
+            </div>
+          </div>
+          <div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+              "
+            >
+              <span style="font-size: 11px; color: var(--text-secondary)"
+                >Offers</span
+              >
+              <span
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  color: var(--text-primary);
+                "
+                id="acceptedCount"
+                >0</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="acceptedBar"
+                style="width: 0%; background: #10b981"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="analytics-section">
+          <div class="section-title">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+            Companies Applied To
+          </div>
+          <div class="companies-list" id="companiesList">
+            <div class="empty-state">
+              <div class="empty-text">No applications yet</div>
+            </div>
           </div>
         </div>
 
@@ -921,9 +1173,9 @@
             >
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Recent Uploads
+            Recent Activity
           </div>
-          <div id="uploadHistory"></div>
+          <div id="recentActivity"></div>
         </div>
       </div>
 

@@ -92,35 +92,37 @@ function addQuickUploadButton() {
   
   uploadButton = document.createElement('div');
   uploadButton.id = 'resume-pilot-button';
-uploadButton.innerHTML = `
-  <button id="resume-pilot-upload-btn" style="
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-    z-index: 999999;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  " onmouseover="this.style.background='#1d4ed8'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 99, 235, 0.5)'" 
-     onmouseout="this.style.background='#2563eb'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.4)'">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-    Upload Resume
-  </button>
-`;
+  uploadButton.innerHTML = `
+    <button id="resume-pilot-upload-btn" style="
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    " onmouseover="this.style.background='#1d4ed8'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 99, 235, 0.5)'" 
+       onmouseout="this.style.background='#2563eb'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.4)'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Upload Resume
+    </button>
+  `;
+  
+function addQuickUploadButton() {
   if (uploadButton) return; // Already exists
   
   uploadButton = document.createElement('div');
@@ -210,6 +212,147 @@ function uploadResumeToInputs(resume, showNotifications = true) {
     return;
   }
   
+  // Smart filtering: Only upload to inputs that are likely for resumes/documents
+  const resumeInputs = fileInputs.filter(input => isResumeInput(input));
+  
+  if (resumeInputs.length === 0) {
+    // Fallback: if no smart matches, use all PDF-accepting inputs
+    const pdfInputs = fileInputs.filter(input => {
+      const accept = input.getAttribute('accept');
+      return !accept || accept.includes('.pdf') || accept.includes('application/pdf') || accept === '*';
+    });
+    
+    if (pdfInputs.length === 0) {
+      if (showNotifications) {
+        showNotification('No resume upload fields found', 'error');
+      }
+      return;
+    }
+    
+    uploadToInputs(pdfInputs, resume, showNotifications);
+  } else {
+    uploadToInputs(resumeInputs, resume, showNotifications);
+  }
+}
+
+// Smart detection: Check if input is likely for resume/CV
+function isResumeInput(input) {
+  const accept = input.getAttribute('accept');
+  
+  // Must accept PDFs or all files
+  if (accept && !accept.includes('.pdf') && !accept.includes('application/pdf') && accept !== '*') {
+    return false;
+  }
+  
+  // Get all text context around the input
+  const context = getInputContext(input).toLowerCase();
+  
+  // Resume/CV keywords (strong indicators)
+  const resumeKeywords = [
+    'resume', 'cv', 'curriculum', 'vitae',
+    'cover letter', 'application', 'document',
+    'qualification', 'portfolio', 'attach your'
+  ];
+  
+  // Exclude keywords (NOT resume inputs)
+  const excludeKeywords = [
+    'photo', 'image', 'picture', 'avatar', 'profile pic',
+    'logo', 'banner', 'screenshot', 'attachment',
+    'invoice', 'receipt', 'passport', 'id card',
+    'certificate', 'transcript', 'diploma'
+  ];
+  
+  // Check for exclusions first
+  if (excludeKeywords.some(keyword => context.includes(keyword))) {
+    return false;
+  }
+  
+  // Check for resume keywords
+  if (resumeKeywords.some(keyword => context.includes(keyword))) {
+    return true;
+  }
+  
+  // Check for job board specific patterns
+  if (isJobBoardSite() && accept && (accept.includes('.pdf') || accept.includes('application/pdf'))) {
+    return true;
+  }
+  
+  // If only one file input on page and it accepts PDFs, likely for resume
+  const allInputs = getAllFileInputs();
+  if (allInputs.length === 1 && (!accept || accept.includes('.pdf') || accept === '*')) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Get text context around input (labels, placeholders, aria, nearby text)
+function getInputContext(input) {
+  let context = '';
+  
+  // Input attributes
+  context += ' ' + (input.name || '');
+  context += ' ' + (input.id || '');
+  context += ' ' + (input.placeholder || '');
+  context += ' ' + (input.getAttribute('aria-label') || '');
+  context += ' ' + (input.title || '');
+  context += ' ' + (input.className || '');
+  
+  // Associated label
+  if (input.id) {
+    const label = document.querySelector(`label[for="${input.id}"]`);
+    if (label) context += ' ' + label.textContent;
+  }
+  
+  // Parent label
+  const parentLabel = input.closest('label');
+  if (parentLabel) context += ' ' + parentLabel.textContent;
+  
+  // Nearby text (within 100px)
+  const rect = input.getBoundingClientRect();
+  const nearbyElements = document.querySelectorAll('label, span, div, p, h1, h2, h3, h4, h5, h6');
+  nearbyElements.forEach(el => {
+    const elRect = el.getBoundingClientRect();
+    const distance = Math.sqrt(
+      Math.pow(rect.left - elRect.left, 2) + 
+      Math.pow(rect.top - elRect.top, 2)
+    );
+    if (distance < 100) {
+      context += ' ' + el.textContent;
+    }
+  });
+  
+  // Parent containers text
+  let parent = input.parentElement;
+  let levels = 0;
+  while (parent && levels < 3) {
+    const directText = Array.from(parent.childNodes)
+      .filter(node => node.nodeType === Node.TEXT_NODE)
+      .map(node => node.textContent)
+      .join(' ');
+    context += ' ' + directText;
+    parent = parent.parentElement;
+    levels++;
+  }
+  
+  return context;
+}
+
+// Check if we're on a known job board
+function isJobBoardSite() {
+  const jobBoards = [
+    'linkedin.com', 'indeed.com', 'glassdoor.com',
+    'monster.com', 'ziprecruiter.com', 'careerbuilder.com',
+    'naukri.com', 'shine.com', 'instahyre.com',
+    'wellfound.com', 'angel.co', 'greenhouse.io',
+    'lever.co', 'workday.com', 'smartrecruiters.com',
+    'taleo.net', 'icims.com', 'jobvite.com'
+  ];
+  
+  return jobBoards.some(board => window.location.hostname.includes(board));
+}
+
+function uploadToInputs(inputs, resume, showNotifications) {
   // Convert base64 back to File object
   const base64Data = resume.data.split(',')[1];
   const binaryData = atob(base64Data);
@@ -230,44 +373,39 @@ function uploadResumeToInputs(resume, showNotifications = true) {
   
   let uploadedCount = 0;
   
-  fileInputs.forEach(input => {
+  inputs.forEach(input => {
     try {
-      const accept = input.getAttribute('accept');
+      // Set files
+      input.files = dataTransfer.files;
       
-      // Check if input accepts PDFs
-      if (!accept || accept.includes('.pdf') || accept.includes('application/pdf') || accept === '*') {
-        // Set files
-        input.files = dataTransfer.files;
-        
-        // Trigger all possible events that forms might listen to
-        const events = ['input', 'change', 'blur'];
-        events.forEach(eventType => {
-          input.dispatchEvent(new Event(eventType, { bubbles: true }));
-        });
-        
-        // For Google Forms and similar, also trigger click on parent button
-        const parentButton = input.closest('button, [role="button"]');
-        if (parentButton) {
-          parentButton.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        
-        // Try to trigger React/Vue events
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
-          'files'
-        )?.set;
-        
-        if (nativeInputValueSetter) {
-          nativeInputValueSetter.call(input, dataTransfer.files);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        
-        uploadedCount++;
-        
-        // Visual feedback - highlight the input area
-        highlightInput(input);
+      // Trigger all possible events that forms might listen to
+      const events = ['input', 'change', 'blur'];
+      events.forEach(eventType => {
+        input.dispatchEvent(new Event(eventType, { bubbles: true }));
+      });
+      
+      // For Google Forms and similar, also trigger click on parent button
+      const parentButton = input.closest('button, [role="button"]');
+      if (parentButton) {
+        parentButton.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      
+      // Try to trigger React/Vue events
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'files'
+      )?.set;
+      
+      if (nativeInputValueSetter) {
+        nativeInputValueSetter.call(input, dataTransfer.files);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      
+      uploadedCount++;
+      
+      // Visual feedback - highlight the input area
+      highlightInput(input);
     } catch (e) {
       console.log('Could not upload to input:', e);
     }

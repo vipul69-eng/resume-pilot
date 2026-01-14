@@ -8,6 +8,8 @@ let settings = {
 };
 let uploadHistory = [];
 let currentEditingUploadId = null;
+let isPremium = false;
+const FREE_RESUME_LIMIT = 2;
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
@@ -22,14 +24,17 @@ async function loadData() {
     "selectedResumeId",
     "settings",
     "uploadHistory",
+    "isPremium",
   ]);
   resumes = result.resumes || [];
   selectedResumeId = result.selectedResumeId || null;
   settings = { ...settings, ...(result.settings || {}) };
   uploadHistory = result.uploadHistory || [];
+  isPremium = result.isPremium || false;
 
   renderResumeList();
   renderSettings();
+  checkPremiumFeatures();
 }
 
 function setupEventListeners() {
@@ -111,6 +116,20 @@ function setupEventListeners() {
   document
     .getElementById("saveUploadDetails")
     .addEventListener("click", saveUploadDetails);
+
+  // Upgrade button
+  document.getElementById("upgradeBtn").addEventListener("click", () => {
+    chrome.tabs.create({ url: "https://resumepilot.com/upgrade" });
+  });
+}
+
+function checkPremiumFeatures() {
+  const upgradeBanner = document.getElementById("upgradeBanner");
+  if (!isPremium && uploadHistory.length > 5) {
+    upgradeBanner.style.display = "block";
+  } else {
+    upgradeBanner.style.display = "none";
+  }
 }
 
 function switchTab(tabName) {
@@ -263,6 +282,24 @@ async function handleFileUpload(file) {
 
   if (file.size > 10 * 1024 * 1024) {
     showStatus("File size must be less than 10MB", "error");
+    return;
+  }
+
+  // Check free tier limit
+  if (!isPremium && resumes.length >= FREE_RESUME_LIMIT) {
+    showStatus(
+      `Free plan limited to ${FREE_RESUME_LIMIT} resumes. Upgrade to Pro for unlimited!`,
+      "error"
+    );
+    setTimeout(() => {
+      if (
+        confirm(
+          "Upgrade to Pro for unlimited resumes, advanced analytics, and more features?"
+        )
+      ) {
+        chrome.tabs.create({ url: "https://resumepilot.com/upgrade" });
+      }
+    }, 500);
     return;
   }
 
@@ -514,117 +551,127 @@ function uploadResumeToPage(resume, showNotifications) {
 
 // Analytics
 function updateAnalytics() {
-  document.getElementById("totalUploads").textContent = uploadHistory.length;
-
-  const uniqueSites = new Set(uploadHistory.map((u) => u.site)).size;
-  document.getElementById("uniqueSites").textContent = uniqueSites;
-
-  // Most used resume
-  const resumeUsage = {};
-  uploadHistory.forEach((u) => {
-    resumeUsage[u.resumeId] = (resumeUsage[u.resumeId] || 0) + 1;
-  });
-  const mostUsedId = Object.keys(resumeUsage).sort(
-    (a, b) => resumeUsage[b] - resumeUsage[a]
-  )[0];
-  const mostUsed = resumes.find((r) => r.id === mostUsedId);
-  document.getElementById("mostUsedResume").textContent = mostUsed
-    ? (mostUsed.displayName || mostUsed.name).substring(0, 10)
-    : "-";
-
-  // Last upload
-  if (uploadHistory.length > 0) {
-    document.getElementById("lastUpload").textContent = formatDate(
-      uploadHistory[0].timestamp
+  // Calculate this month's applications
+  const now = new Date();
+  const thisMonth = uploadHistory.filter((u) => {
+    const d = new Date(u.timestamp);
+    return (
+      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     );
-  }
+  }).length;
+  document.getElementById("totalApplications").textContent = thisMonth;
 
-  // Upload history
-  const historyEl = document.getElementById("uploadHistory");
-  if (uploadHistory.length === 0) {
-    historyEl.innerHTML =
-      '<div class="empty-state"><div class="empty-text">No uploads yet</div></div>';
+  // Calculate response rate (applications with company name that got interview/accepted)
+  const last30Days = uploadHistory.filter(
+    (u) => Date.now() - u.timestamp < 30 * 24 * 60 * 60 * 1000
+  );
+  const withCompany = last30Days.filter((u) => u.company);
+  const gotResponse = withCompany.filter(
+    (u) => u.status === "interview" || u.status === "accepted"
+  );
+  const responseRate =
+    withCompany.length > 0
+      ? Math.round((gotResponse.length / withCompany.length) * 100)
+      : 0;
+  document.getElementById("responseRate").textContent = responseRate + "%";
+
+  // Time saved (assume 5 minutes per manual upload)
+  const avgTime = uploadHistory.length > 0 ? "~5 min" : "-";
+  document.getElementById("avgTimeToApply").textContent = avgTime;
+
+  // Active applications (applied status with company name)
+  const active = uploadHistory.filter(
+    (u) => u.status === "applied" && u.company
+  ).length;
+  document.getElementById("activeApplications").textContent = active;
+
+  // Progress bars
+  const applied = uploadHistory.filter((u) => u.status === "applied").length;
+  const interview = uploadHistory.filter(
+    (u) => u.status === "interview"
+  ).length;
+  const accepted = uploadHistory.filter((u) => u.status === "accepted").length;
+  const total = Math.max(uploadHistory.length, 1);
+
+  document.getElementById("appliedCount").textContent = applied;
+  document.getElementById("interviewCount").textContent = interview;
+  document.getElementById("acceptedCount").textContent = accepted;
+
+  document.getElementById("appliedBar").style.width =
+    (applied / total) * 100 + "%";
+  document.getElementById("interviewBar").style.width =
+    (interview / total) * 100 + "%";
+  document.getElementById("acceptedBar").style.width =
+    (accepted / total) * 100 + "%";
+
+  // Companies list
+  const companiesMap = {};
+  uploadHistory.forEach((u) => {
+    if (u.company) {
+      companiesMap[u.company] = (companiesMap[u.company] || 0) + 1;
+    }
+  });
+
+  const companiesList = document.getElementById("companiesList");
+  const companies = Object.entries(companiesMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (companies.length === 0) {
+    companiesList.innerHTML =
+      '<div class="empty-state"><div class="empty-text">No companies tracked yet</div></div>';
   } else {
-    historyEl.innerHTML = uploadHistory
-      .slice(0, 15)
+    companiesList.innerHTML = companies
       .map(
-        (u) => `
-      <div class="upload-entry" data-upload-id="${u.id}">
-        <div class="upload-entry-header">
-          <div class="upload-site">${escapeHtml(u.site)}</div>
-          <div class="upload-time">${formatDate(u.timestamp)}</div>
-        </div>
-        <div class="upload-details">
-          <div class="upload-detail-row">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <span>${escapeHtml(u.resumeName)}</span>
-          </div>
-          ${
-            u.company
-              ? `
-            <div class="upload-detail-row">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-              </svg>
-              <span>${escapeHtml(u.company)}</span>
-            </div>
-          `
-              : ""
-          }
-          ${
-            u.position
-              ? `
-            <div class="upload-detail-row">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              <span>${escapeHtml(u.position)}</span>
-            </div>
-          `
-              : ""
-          }
-          <div class="upload-detail-row">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="status-badge status-${u.status}">${u.status}</span>
-          </div>
-          ${
-            u.reminder
-              ? `
-            <div class="upload-detail-row">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-              </svg>
-              <span>Reminder: ${new Date(
-                u.reminder
-              ).toLocaleDateString()}</span>
-            </div>
-          `
-              : ""
-          }
-        </div>
-        <button class="secondary edit-history-btn" style="margin-top: 8px; padding: 6px 10px; font-size: 11px;" data-upload-id="${
-          u.id
-        }">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-          </svg>
-          Edit Details
-        </button>
+        ([name, count]) => `
+      <div class="company-item">
+        <div class="company-name">${escapeHtml(name)}</div>
+        <div class="company-count">${count} application${
+          count > 1 ? "s" : ""
+        }</div>
       </div>
     `
       )
       .join("");
-    // Attach event listeners to the new buttons
-    historyEl.querySelectorAll(".edit-history-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        openUploadDetailsModal(btn.dataset.uploadId);
-      });
-    });
   }
+
+  // Recent activity
+  const activityEl = document.getElementById("recentActivity");
+  const recent = uploadHistory.slice(0, 5);
+
+  if (recent.length === 0) {
+    activityEl.innerHTML =
+      '<div class="empty-state"><div class="empty-text">No activity yet</div></div>';
+  } else {
+    activityEl.innerHTML = recent
+      .map(
+        (u) => `
+      <div class="upload-entry" style="cursor: pointer;" onclick="window.editUpload('${
+        u.id
+      }')">
+        <div class="upload-entry-header">
+          <div class="upload-site">${u.company || escapeHtml(u.site)}</div>
+          <div class="upload-time">${formatDate(u.timestamp)}</div>
+        </div>
+        <div class="upload-details">
+          ${
+            u.position
+              ? `<div class="upload-detail-row"><span>${escapeHtml(
+                  u.position
+                )}</span></div>`
+              : ""
+          }
+          <div class="upload-detail-row">
+            <span class="status-badge status-${u.status}">${u.status}</span>
+          </div>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  checkPremiumFeatures();
 }
 
 // Make editUpload globally accessible
